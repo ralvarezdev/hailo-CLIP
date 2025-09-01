@@ -16,7 +16,6 @@ class app_callback_class:
     def get_count(self):
         return self.frame_count
 
-
 def app_callback(self, pad, info, user_data):
     """
     This is the callback function that will be called when data is available
@@ -24,6 +23,10 @@ def app_callback(self, pad, info, user_data):
     Processing time should be kept to a minimum in this function.
     If longer processing is needed, consider using a separate thread / process.
     """
+    # Check if it has the latest detection attribute
+    if not hasattr(self, 'latest_detection'):
+        self.latest_detection = None
+
     # Get the GstBuffer from the probe info
     buffer = info.get_buffer()
 
@@ -53,10 +56,15 @@ def app_callback(self, pad, info, user_data):
         if len(classifications) > 0:
             for classification in classifications:
                 label = classification.get_label()
-                confidence = classification.get_confidence()
-                print(f"{label} {confidence:.2f}")
+                if label != self.latest_detection:
+                    confidence = classification.get_confidence()
+                    print(f"{label} {confidence:.2f}")
+                    self.latest_detection = label
                 # string_to_print += f'{label} {confidence:.2f}'
             # string_to_print += '\n'
+        elif self.latest_detection is not None:
+            print("None")
+            self.latest_detection = None
         # if isinstance(detection, hailo.HailoDetection):
         #     label = detection.get_label()
         #     bbox = detection.get_bbox()
