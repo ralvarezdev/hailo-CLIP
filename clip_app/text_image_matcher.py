@@ -68,7 +68,7 @@ class Match:
 class TextImageMatcher:
     _instance = None
 
-    def __new__(cls):
+    def __new__(cls, *args, **kwargs):
         if cls._instance is None:
             cls._instance = super(TextImageMatcher, cls).__new__(cls)
         return cls._instance
@@ -246,9 +246,7 @@ class TextImageMatcher:
         logger.debug("Best match output: %s", results)
         return results
 
-
-text_image_matcher = TextImageMatcher()
-
+text_image_matcher = None
 
 def main():
     parser = argparse.ArgumentParser()
@@ -257,9 +255,10 @@ def main():
     parser.add_argument("--image-path", type=str, default=None, help="Optional, path to image file to match. Note image embeddings are not running on Hailo here.")
     parser.add_argument('--texts-list', nargs='+', help='A list of texts to add to the matcher, the first one will be the searched text, the others will be considered negative prompts.\n Example: --texts-list "cat" "dog" "yellow car"')
     parser.add_argument('--texts-json', type=str, help='A json of texts to add to the matcher, the json will include 2 keys negative and positive, the values are going to be lists of texts\n Example: --texts-json resources/texts_json_example.json')
+    parser.add_argument('--threshold', type=float, default=0.8, help='Threshold for classification (default: 0.5)')
     args = parser.parse_args()
 
-    matcher = TextImageMatcher()
+    matcher = TextImageMatcher(threshold=args.threshold)
     matcher.init_clip()
     texts = []
     if args.interactive:
@@ -323,3 +322,5 @@ def main():
 
 if __name__ == "__main__":
     main()
+else:
+    text_image_matcher = TextImageMatcher()

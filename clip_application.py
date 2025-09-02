@@ -58,12 +58,12 @@ def app_callback(self, pad, info, user_data):
                 label = classification.get_label()
                 if label != self.latest_detection:
                     confidence = classification.get_confidence()
-                    print(f"{label} {confidence:.2f}")
+                    print(f"{label} {confidence:.2f}", flush=True)
                     self.latest_detection = label
                 # string_to_print += f'{label} {confidence:.2f}'
             # string_to_print += '\n'
         elif self.latest_detection is not None:
-            print("None")
+            print("None", flush=True)
             self.latest_detection = None
         # if isinstance(detection, hailo.HailoDetection):
         #     label = detection.get_label()
