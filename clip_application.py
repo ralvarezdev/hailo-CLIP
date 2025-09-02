@@ -1,3 +1,4 @@
+from time import time
 import gi
 gi.require_version('Gst', '1.0')
 from gi.repository import Gst
@@ -9,6 +10,7 @@ class app_callback_class:
         self.frame_count = 0
         self.use_frame = False
         self.running = True
+
 
     def increment(self):
         self.frame_count += 1
@@ -23,9 +25,16 @@ def app_callback(self, pad, info, user_data):
     Processing time should be kept to a minimum in this function.
     If longer processing is needed, consider using a separate thread / process.
     """
-    # Check if it has the latest detection attribute
+    # Initialize attributes if they don't exist
     if not hasattr(self, 'latest_detection'):
-        self.latest_detection = None
+        self.latest_detection = None 
+    if not hasattr(self, 'latest_detection_time'):
+        self.latest_detection_time = None
+    if not hasattr(self, 'timeout_seconds'):
+        self.timeout_seconds = 0.25
+
+    # Get current time
+    now = time()
 
     # Get the GstBuffer from the probe info
     buffer = info.get_buffer()
@@ -34,24 +43,14 @@ def app_callback(self, pad, info, user_data):
     if buffer is None:
         return Gst.PadProbeReturn.OK
 
-    # string_to_print = ""
-
     # Get the detections from the buffer
     roi = hailo.get_roi_from_buffer(buffer)
     detections = roi.get_objects_typed(hailo.HAILO_DETECTION)
     if len(detections) == 0:
         detections = [roi] # Use the ROI as the detection
 
-    # Parse the detections
+    found_label = False
     for detection in detections:
-        # track = detection.get_objects_typed(hailo.HAILO_UNIQUE_ID)
-        # track_id = None
-        # label = None
-        # confidence = 0.0
-        # for track_id_obj in track:
-        #     track_id = track_id_obj.get_id()
-        # if track_id is not None:
-        #     string_to_print += f'Track ID: {track_id} '
         classifications = detection.get_objects_typed(hailo.HAILO_CLASSIFICATION)
         if len(classifications) > 0:
             for classification in classifications:
@@ -60,19 +59,16 @@ def app_callback(self, pad, info, user_data):
                     confidence = classification.get_confidence()
                     print(f"{label} {confidence:.2f}", flush=True)
                     self.latest_detection = label
-                # string_to_print += f'{label} {confidence:.2f}'
-            # string_to_print += '\n'
-        elif self.latest_detection is not None:
+                self.latest_detection_time = now
+                found_label = True
+
+    # Check for timeout
+    if not found_label and self.latest_detection is not None and self.latest_detection_time is not None:
+        if now - self.latest_detection_time > self.timeout_seconds:
             print("None", flush=True)
             self.latest_detection = None
-        # if isinstance(detection, hailo.HailoDetection):
-        #     label = detection.get_label()
-        #     bbox = detection.get_bbox()
-        #     confidence = detection.get_confidence()
-        #     string_to_print += f"Detection: {label} {confidence:.2f}\n"
+            self.latest_detection_time = None
 
-    # if string_to_print:
-    #     print(string_to_print)
     return Gst.PadProbeReturn.OK
 
 def main():
